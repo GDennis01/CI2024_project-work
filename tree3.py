@@ -153,6 +153,13 @@ class BTree:
         self.get_all_nodes(self.root,nodes)
         idx = np.random.randint(0,len(nodes))
         return nodes[idx]
+    def get_random_leaf(self)->Node:
+        """
+        Get a random leaf node from the tree
+        """
+        leaves = self.get_leaves()
+        idx = np.random.randint(0,len(leaves))
+        return leaves[idx]
     def get_all_nodes(self, node:Node, nodes):
         if node is not None:
             nodes.append(node)
@@ -265,10 +272,13 @@ class TweakableBTree(BTree):
         return new_node
         
 
-    def point_mutation(self,node:Node):
+    def point_mutation(self,node:Node|None=None):
         """
         Replace the current node with a new one randomly generated
         """
+        if node is None:
+            node = self.get_random_node()
+
         match node.type:
             case NodeType.B_OP:
                 tmp_oplist = list(filter(lambda x: x[2] == 2,self.operator_list))
@@ -286,17 +296,23 @@ class TweakableBTree(BTree):
             case NodeType.CONST:
                 node.value = np.random.rand()*100
                 pass
-    def hoist_mutation(self,node:Node):
+    def hoist_mutation(self,node:Node|None=None):
         """
         Transform the tree into the selected subtree
         """
+        if node is None:
+            node = self.get_random_node()
+            
         self.root = node
 
 
-    def collapse_subtree_mutation(self,node:Node):
+    def collapse_subtree_mutation(self,node:Node|None=None):
         """
         Collapse a subtree into a single node
         """
+        if node is None:
+            node = self.get_random_node()
+
         # 1 - get all children nodes that are not operators
         leaves = self.get_leaves()
         # 2 - select a random node
@@ -307,11 +323,12 @@ class TweakableBTree(BTree):
         node.left = None
         node.right = None
         
-    # TODO: expansion and subtree are the same, maybe merge them into a single function
-    def expansion_mutation(self,node:Node,md:int):
+    def expansion_mutation(self,md:int,node:Node|None=None):
         """
         Expand a leaf node into a subtree
         """
+        if node is None:
+            node = self.get_random_leaf()
         assert node.is_leaf()
         # 1 - Generate a new subtree for 
         new_subtree = TweakableBTree.generate_random_tree_growfull(self.operator_list,self.n_vars,md,True)
@@ -321,10 +338,12 @@ class TweakableBTree(BTree):
         node.value = new_subtree.value
         
 
-    def subtree_mutation(self,node:Node,md:int):
+    def subtree_mutation(self,md:int,node:Node|None=None):
         """
         Replace a subtree with another randomly generated subtree
         """
+        if node is None:
+            node = self.get_random_node()
         # 1 - Generate a new subtree
         new_subtree = TweakableBTree.generate_random_tree_growfull(self.operator_list,self.n_vars,md,True)
         # 2 - Replace the current subtree with the new one
@@ -336,6 +355,7 @@ class TweakableBTree(BTree):
 def main():
     operator_list = get_np_functions()
     n_vars = 2
+    md = 4
 
     # tree = TweakableBTree(0.5,operator_list,1)
     # tree.root = Node(1)
@@ -356,28 +376,53 @@ def main():
     # tree.print_tree()
 
     # Init a random tree
-    tb2 = TweakableBTree(0.5,operator_list,2)
-    tb2.root = TweakableBTree.generate_random_tree_growfull(operator_list,n_vars,2,True)
+    tb2 = TweakableBTree(0.5,operator_list,n_vars)
+    tb2.root = TweakableBTree.generate_random_tree_growfull(operator_list,n_vars,md,True)
 
     print("Albero generato:")
     tb2.print_tree()
+    print()
     # print(tb2.to_np_formula())
     # print(tb2.evaluate(np.array([1,2,3,4,5,6])))
 
-    print("All nodes:")
-    nodes = []
-    tb2.get_all_nodes(tb2.root,nodes)
-    print([node.value for node in nodes])
-
-
-    print("Albero dopo subtree mutation:")
-    node_to_change = tb2.root.left
-    tb2.subtree_mutation(node_to_change,3)
+    print("Point mutation:")
+    tb2.point_mutation()
     tb2.print_tree()
+    print()
 
-    print("Albero dopo collapse:")
-    tb2.collapse_subtree_mutation(tb2.root.left)
+    print("Hoist mutation:")
+    tb2.hoist_mutation()
     tb2.print_tree()
+    print()
+
+    print("Expansion mutation:")
+    tb2.expansion_mutation(2)
+    tb2.print_tree()
+    print()
+
+    print("Subtree mutation:")
+    tb2.subtree_mutation(2)
+    tb2.print_tree()
+    print()
+
+    print("Collapse mutation:")
+    tb2.collapse_subtree_mutation()
+    tb2.print_tree()
+    print()
+    # print("All nodes:")
+    # nodes = []
+    # tb2.get_all_nodes(tb2.root,nodes)
+    # print([node.value for node in nodes])
+
+
+    # print("Albero dopo subtree mutation:")
+    # node_to_change = tb2.root.left
+    # tb2.subtree_mutation(node_to_change,3)
+    # tb2.print_tree()
+
+    # print("Albero dopo collapse:")
+    # tb2.collapse_subtree_mutation(tb2.root.left)
+    # tb2.print_tree()
     
     # Eliminare un sottotree
     # tree.delete_subtree(node2)
