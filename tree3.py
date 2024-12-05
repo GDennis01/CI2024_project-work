@@ -1,10 +1,10 @@
 from collections import deque
 from enum import Enum
 import numpy as np
-import numpy as np
+
 import warnings
 # warnings.filterwarnings("error")
-# TODO: finish the remaining mutations. Find a way proper way to select a random node(maybe based on fitness) and apply the mutation to it.
+# TODO: make it so that numpy functions don't raise warnings-> maybe for each function clamp the input values to avoid warnings(i.e: for sqrt use the absolute value of the input,log clamps to 1 etc)
 
 def get_np_functions()->list[tuple[np.ufunc,str,int]]:
     # Get all attributes of numpy module
@@ -22,6 +22,8 @@ class NodeType(Enum):
     VAR=3,
     CONST=4
 
+
+
 class Node:
     def __init__(self, value, type: NodeType = NodeType.CONST):
         self.value = value
@@ -30,6 +32,16 @@ class Node:
         self.type:NodeType = type
     def is_leaf(self):
         return self.left is None and self.right is None
+    def clone(self):
+        # Create a new node with the same value and type
+        cloned_node = Node(self.value, self.type)
+        # Recursively clone left and right children
+        if self.left:
+            cloned_node.left = self.left.clone()
+        if self.right:
+            cloned_node.right = self.right.clone()
+        return cloned_node
+
     def get_leaves(self):
         """
         Restituisce una lista di foglie dell'albero.
@@ -55,7 +67,7 @@ class Node:
             nodes.append(node)
             self._get_all_nodes_recursive(node.left, nodes)
             self._get_all_nodes_recursive(node.right, nodes)
-
+    
     def evaluate(self,x:np.ndarray):
         """
         Evaluate the tree with the input x
@@ -91,8 +103,12 @@ class Node:
         if self.type == NodeType.VAR:
             return self.value
         if self.type == NodeType.U_OP:
-            left = self.left.to_np_formula()
-            return "np."+self.value[1]+"("+left+")"
+            if self.right is None:
+                left = self.left.to_np_formula()
+                return "np."+self.value[1]+"("+left+")"
+            
+            right = self.right.to_np_formula()
+            return "np."+self.value[1]+"("+right+")"
         if self.type == NodeType.B_OP:
             left = self.left.to_np_formula()
             right = self.right.to_np_formula()
@@ -101,6 +117,14 @@ class Node:
 class BTree:
     def __init__(self):
         self.root:Node = None
+    def clone(self):
+        """
+        Clone the tree and return the new tree
+        """
+        new_tree = BTree()
+        if self.root is not None:
+            new_tree.root = self.root.clone()
+        return new_tree
 
     def add_child_at(self, node:Node, value, type:NodeType, position:int):
         """
@@ -186,6 +210,8 @@ class BTree:
         """
         # leaves = self.get_leaves()
         leaves = self.root.get_leaves()
+        if leaves is None or len(leaves) == 0:
+            return self.root
         idx = np.random.randint(0,len(leaves))
         return leaves[idx]
     def get_random_operator(self)->Node:
@@ -194,6 +220,8 @@ class BTree:
         """
         nodes = self.root.get_all_nodes()
         operators = list(filter(lambda x: x.type != NodeType.CONST and x.type != NodeType.VAR,nodes))
+        if operators is None or len(operators) == 0:
+            return self.root
         idx = np.random.randint(0,len(operators))
         return operators[idx]
     # def get_all_nodes(self, node:Node, nodes):
@@ -248,6 +276,15 @@ class TweakableBTree(BTree):
         self.pr = 1 - pm
         self.operator_list = operator_list
         self.n_vars = n_vars
+        self.fitness = 0
+    def clone(self):
+        """
+        Clone the tree and return the new tree
+        """
+        new_tree = TweakableBTree(self.pm,self.operator_list,self.n_vars)
+        if self.root is not None:
+            new_tree.root = self.root.clone()
+        return new_tree
     def evaluate(self,x:np.ndarray):
         """
         Evaluate the tree with the input x
@@ -309,7 +346,6 @@ class TweakableBTree(BTree):
 
         root = TweakableBTree._gen_random_tree_growfull(operator_list,n_vars,md,full)
         tb = TweakableBTree(pm,operator_list,n_vars)
-        print(f"tb type: {tb}")
         tb.root = root
         return tb
         
@@ -319,7 +355,6 @@ class TweakableBTree(BTree):
         """
         if node is None:
             node = self.get_random_node()
-            print(f"Node selected: {node.value}")
 
         match node.type:
             case NodeType.B_OP:
@@ -354,7 +389,6 @@ class TweakableBTree(BTree):
         """
         if node is None:
             node = self.get_random_operator()
-            print(f"Node selected: {node.value}")
 
         # 1 - get all children nodes that are not operators
         # leaves = self.get_leaves()
@@ -396,11 +430,35 @@ class TweakableBTree(BTree):
         node.right = new_subtree.right
         node.value = new_subtree.value
         
+def recombination(tb1:TweakableBTree,tb2:TweakableBTree):
+    """
+    Recombine two trees 
+    """
+    t1copy = tb1.clone()
+    t2copy = tb2.clone()
+    # 1 - Select a random node from each tree
+    t1node = t1copy.get_random_operator()
+    t2node = t2copy.get_random_operator()
+    # 2 - Swap the nodes
+    tmp = t1node.value
+    tmpl = t1node.left
+    tmpr = t1node.right
+    tmpt = t1node.type
 
+    t1node.value = t2node.value
+    t1node.left = t2node.left
+    t1node.right = t2node.right
+    t1node.type = t2node.type
+
+    t2node.value = tmp
+    t2node.left = tmpl
+    t2node.right = tmpr
+    t2node.type = tmpt
+    return t1copy,t2copy
 def main():
     operator_list = get_np_functions()
     n_vars = 2
-    md = 3
+    md = 2
 
     # tree = TweakableBTree(0.5,operator_list,1)
     # tree.root = Node(1)
@@ -421,16 +479,12 @@ def main():
     # tree.print_tree()
 
     # Init a random tree
-    # tb2 = TweakableBTree(0.5,operator_list,n_vars)
+    
     tb2 = TweakableBTree.generate_random_tree_growfull(operator_list,n_vars,md,True)
-    # print type of the tb2
-    print(f"Root type: {type(tb2)}")
-    # tb2.root = TweakableBTree.generate_random_tree_growfull(operator_list,n_vars,md,True)
-
     print("Albero generato:")
     tb2.print_tree()
     print()
-
+  
     print("All nodes:")
     nodes = tb2.root.get_all_nodes()
     print([node.value for node in nodes])
@@ -444,55 +498,58 @@ def main():
     # print(tb2.to_np_formula())
     # print(tb2.evaluate(np.array([1,2,3,4,5,6])))
 
-    print("Point mutation:")
-    tb2.point_mutation()
-    tb2.print_tree()
-    print()
-
-    print("Hoist mutation:")
-    tb2.hoist_mutation()
-    tb2.print_tree()
-    print()
-
-    print("Expansion mutation:")
-    tb2.expansion_mutation(2)
-    tb2.print_tree()
-    print()
-
-    print("Subtree mutation:")
-    tb2.subtree_mutation(2)
-    tb2.print_tree()
-    print()
-
-    print("Collapse mutation:")
-    tb2.collapse_subtree_mutation()
-    tb2.print_tree()
-    print()
-    # print("All nodes:")
-    # nodes = []
-    # tb2.get_all_nodes(tb2.root,nodes)
-    # print([node.value for node in nodes])
-
-
-    # print("Albero dopo subtree mutation:")
-    # node_to_change = tb2.root.left
-    # tb2.subtree_mutation(node_to_change,3)
+    # print("Point mutation:")
+    # tb2.point_mutation()
     # tb2.print_tree()
+    # print()
 
-    # print("Albero dopo collapse:")
-    # tb2.collapse_subtree_mutation(tb2.root.left)
+    # print("Hoist mutation:")
+    # tb2.hoist_mutation()
     # tb2.print_tree()
+    # print()
+
+    # print("Expansion mutation:")
+    # tb2.expansion_mutation(2)
+    # tb2.print_tree()
+    # print()
+
+    # print("Subtree mutation:")
+    # tb2.subtree_mutation(2)
+    # tb2.print_tree()
+    # print()
+
+    # print("Collapse mutation:")
+    # tb2.collapse_subtree_mutation()
+    # tb2.print_tree()
+    # print()
+
+    tb3 = TweakableBTree.generate_random_tree_growfull(operator_list,n_vars,md,True)
+    print("Albero generato tb3:")
+    tb3.print_tree()
+    print()
+    print("Recombination:")
+    tb4,tb5 = recombination(tb2,tb3)
+    print("Albero generato tb2:")
+    tb2.print_tree()
+    print()
+    print("Albero generato tb3:")
+    tb3.print_tree()
+    print()
+
+    print("Albero generato tb4:")
+    tb4.print_tree()
+    print()
+    print("Albero generato tb5:")
+    tb5.print_tree()
+    print()
+
+    print(f'tb4 formula: {tb4.to_np_formula()}')
+    print(tb4.evaluate(np.array([1,2,3,4,5,6])))
+    print(f'tb5 formula: {tb4.to_np_formula()}')
+    print(tb5.evaluate(np.array([1,2,3,4,5,6])))
+
+
     
-    # Eliminare un sottotree
-    # tree.delete_subtree(node2)
-
-    # Stampare l'tree dopo l'eliminazione
-    # print("\nAlbero dopo eliminazione:")
-    # tree.print_tree()
-
-    # print("\nMutation:")
-    # tree.point_mutation(tree.root)
-    # tree.print_tree()
 
 
 if __name__ == "__main__":
