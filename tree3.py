@@ -30,6 +30,32 @@ class Node:
         self.type:NodeType = type
     def is_leaf(self):
         return self.left is None and self.right is None
+    def get_leaves(self):
+        """
+        Restituisce una lista di foglie dell'albero.
+        """
+        leaves = []
+        self._get_leaves_recursive(self, leaves)
+        return leaves
+    def _get_leaves_recursive(self, node, leaves):
+        if node is not None:
+            if node.is_leaf():
+                leaves.append(node)
+            self._get_leaves_recursive(node.left, leaves)
+            self._get_leaves_recursive(node.right, leaves)
+    def get_all_nodes(self):
+        """
+        Restituisce una lista di nodi dell'albero.
+        """
+        nodes = []
+        self._get_all_nodes_recursive(self, nodes)
+        return nodes
+    def _get_all_nodes_recursive(self, node, nodes):
+        if node is not None:
+            nodes.append(node)
+            self._get_all_nodes_recursive(node.left, nodes)
+            self._get_all_nodes_recursive(node.right, nodes)
+
     def evaluate(self,x:np.ndarray):
         """
         Evaluate the tree with the input x
@@ -150,47 +176,57 @@ class BTree:
         Get a random node from the tree
         """
         nodes =[self.root]
-        self.get_all_nodes(self.root,nodes)
+        # self.get_all_nodes(self.root,nodes)
+        nodes = self.root.get_all_nodes()
         idx = np.random.randint(0,len(nodes))
         return nodes[idx]
     def get_random_leaf(self)->Node:
         """
         Get a random leaf node from the tree
         """
-        leaves = self.get_leaves()
+        # leaves = self.get_leaves()
+        leaves = self.root.get_leaves()
         idx = np.random.randint(0,len(leaves))
         return leaves[idx]
-    def get_all_nodes(self, node:Node, nodes):
-        if node is not None:
-            nodes.append(node)
-            self.get_all_nodes(node.left, nodes)
-            self.get_all_nodes(node.right, nodes)
+    def get_random_operator(self)->Node:
+        """
+        Get a random operator node from the tree
+        """
+        nodes = self.root.get_all_nodes()
+        operators = list(filter(lambda x: x.type != NodeType.CONST and x.type != NodeType.VAR,nodes))
+        idx = np.random.randint(0,len(operators))
+        return operators[idx]
+    # def get_all_nodes(self, node:Node, nodes):
+    #     if node is not None:
+    #         nodes.append(node)
+    #         self.get_all_nodes(node.left, nodes)
+    #         self.get_all_nodes(node.right, nodes)
 
 
     # TODO: fix this
-    def _find_node_recursive(self, node:Node, value):
-        if node is None:
-            return None
-        if node.value == value:
-            return node
-        left = self._find_node_recursive(node.left, value)
-        if left:
-            return left
-        return self._find_node_recursive(node.right, value)
+    # def _find_node_recursive(self, node:Node, value):
+    #     if node is None:
+    #         return None
+    #     if node.value == value:
+    #         return node
+    #     left = self._find_node_recursive(node.left, value)
+    #     if left:
+    #         return left
+    #     return self._find_node_recursive(node.right, value)
 
-    def get_leaves(self):
-        """
-        Restituisce una lista di foglie dell'albero.
-        """
-        leaves = []
-        self._get_leaves_recursive(self.root, leaves)
-        return leaves
-    def _get_leaves_recursive(self, node:Node, leaves):
-        if node is not None:
-            if node.is_leaf():
-                leaves.append(node)
-            self._get_leaves_recursive(node.left, leaves)
-            self._get_leaves_recursive(node.right, leaves)
+    # def get_leaves(self):
+    #     """
+    #     Restituisce una lista di foglie dell'albero.
+    #     """
+    #     leaves = []
+    #     self._get_leaves_recursive(self.root, leaves)
+    #     return leaves
+    # def _get_leaves_recursive(self, node:Node, leaves):
+    #     if node is not None:
+    #         if node.is_leaf():
+    #             leaves.append(node)
+    #         self._get_leaves_recursive(node.left, leaves)
+    #         self._get_leaves_recursive(node.right, leaves)
     def print_tree(self):
         """
         Stampa l'albero in ordine.
@@ -278,6 +314,7 @@ class TweakableBTree(BTree):
         """
         if node is None:
             node = self.get_random_node()
+            print(f"Node selected: {node.value}")
 
         match node.type:
             case NodeType.B_OP:
@@ -311,10 +348,13 @@ class TweakableBTree(BTree):
         Collapse a subtree into a single node
         """
         if node is None:
-            node = self.get_random_node()
+            node = self.get_random_operator()
+            print(f"Node selected: {node.value}")
 
         # 1 - get all children nodes that are not operators
-        leaves = self.get_leaves()
+        # leaves = self.get_leaves()
+        # leaves = self.root.get_leaves()
+        leaves = node.get_leaves()
         # 2 - select a random node
         idx = np.random.randint(0,len(leaves))
         selected_node = leaves[idx]
@@ -355,7 +395,7 @@ class TweakableBTree(BTree):
 def main():
     operator_list = get_np_functions()
     n_vars = 2
-    md = 4
+    md = 3
 
     # tree = TweakableBTree(0.5,operator_list,1)
     # tree.root = Node(1)
@@ -382,6 +422,17 @@ def main():
     print("Albero generato:")
     tb2.print_tree()
     print()
+
+    print("All nodes:")
+    nodes = tb2.root.get_all_nodes()
+    print([node.value for node in nodes])
+    print()
+
+    print("All leaves:")
+    leaves = tb2.root.get_leaves()
+    print([leaf.value for leaf in leaves])
+    print()
+
     # print(tb2.to_np_formula())
     # print(tb2.evaluate(np.array([1,2,3,4,5,6])))
 
