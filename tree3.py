@@ -187,6 +187,55 @@ class TweakableBTree(BTree):
         Convert the tree into a numpy formula
         """
         return self.root.to_np_formula()
+    
+    
+    def gen_random_leaf(n_vars:int)->Node:
+        """
+        Generate a random leaf node and return it.
+        """
+        # select between const and vars
+        if np.random.rand() < 0.5:
+            value = np.random.rand()*100
+            new_node = Node(value,NodeType.CONST)
+        else:
+            value = "x"+str(np.random.randint(0,n_vars))
+            new_node = Node(value,NodeType.VAR) 
+        return new_node   
+    
+    def gen_random_op_node(operator_list:list[tuple[np.ufunc,str,int]])->Node:
+        # Generate an operator node
+            if np.random.rand() < 0.5:
+                #Binary function node
+                tmp_oplist = list(filter(lambda x: x[2] == 2,operator_list))
+                idx = np.random.randint(0,len(tmp_oplist))
+                new_node = Node(tmp_oplist[idx],NodeType.B_OP)
+            else:
+                # Unary function node
+                tmp_oplist = list(filter(lambda x: x[2] == 1,operator_list))
+                idx = np.random.randint(0,len(tmp_oplist))
+                new_node = Node(tmp_oplist[idx],NodeType.U_OP)
+            return new_node
+
+    def generate_random_tree_growfull(operator_list:list[tuple[np.ufunc,str,int]],n_vars:int,md:int,full:bool)->Node:
+        """
+        Generate a random tree with maximum depth md and return it.
+        A growfull method is used to generate the tree.
+        root: randomly generated root node
+        md: maximum depth of the tree
+        """
+        # Credits: the pseudocode has been taken from this paper https://icog-labs.com/wp-content/uploads/2014/07/Introduction_to_GP_Matthew-Walker.pdf and adapted.
+
+        # if  (not full and np.random.rand() < 0.5 or md == 0) or (full and md == 0):
+        if  md == 0 or (not full and np.random.rand() < 0.5):
+            new_node = TweakableBTree.gen_random_leaf(n_vars)
+            return new_node
+        else:
+            new_node = TweakableBTree.gen_random_op_node(operator_list)
+        new_node.left = TweakableBTree.generate_random_tree_growfull(operator_list,n_vars,md-1,True)
+        if new_node.value[2] == 2:
+            new_node.right = TweakableBTree.generate_random_tree_growfull(operator_list,n_vars,md-1,True)
+        return new_node
+        
 
     def point_mutation(self,node:Node):
         """
@@ -215,53 +264,6 @@ class TweakableBTree(BTree):
         """
         self.root = node
 
-    def gen_random_leaf(self)->Node:
-        """
-        Generate a random leaf node and return it.
-        """
-        # select between const and vars
-        if np.random.rand() < 0.5:
-            value = np.random.rand()*100
-            new_node = Node(value,NodeType.CONST)
-        else:
-            value = "x"+str(np.random.randint(0,self.n_vars))
-            new_node = Node(value,NodeType.VAR) 
-        return new_node   
-    
-    def gen_random_op_node(self)->Node:
-        # Generate an operator node
-            if np.random.rand() < 0.5:
-                #Binary function node
-                tmp_oplist = list(filter(lambda x: x[2] == 2,self.operator_list))
-                idx = np.random.randint(0,len(tmp_oplist))
-                new_node = Node(tmp_oplist[idx],NodeType.B_OP)
-            else:
-                # Unary function node
-                tmp_oplist = list(filter(lambda x: x[2] == 1,self.operator_list))
-                idx = np.random.randint(0,len(tmp_oplist))
-                new_node = Node(tmp_oplist[idx],NodeType.U_OP)
-            return new_node
-
-    def generate_random_tree_growfull(self,md:int,full:bool):
-        """
-        Generate a random tree with maximum depth md and return it.
-        A growfull method is used to generate the tree.
-        root: randomly generated root node
-        md: maximum depth of the tree
-        """
-        # Credits: the pseudocode has been taken from this paper https://icog-labs.com/wp-content/uploads/2014/07/Introduction_to_GP_Matthew-Walker.pdf and adapted.
-
-        # if  (not full and np.random.rand() < 0.5 or md == 0) or (full and md == 0):
-        if  md == 0 or (not full and np.random.rand() < 0.5):
-            new_node = self.gen_random_leaf()
-            return new_node
-        else:
-            new_node = self.gen_random_op_node()
-        new_node.left = self.generate_random_tree_growfull(md-1,True)
-        if new_node.value[2] == 2:
-            new_node.right = self.generate_random_tree_growfull(md-1,True)
-        return new_node
-        
 
     def collapse_subtree_mutation(self,node:Node):
         """
@@ -297,7 +299,10 @@ class TweakableBTree(BTree):
         
 
 def main():
-    tree = TweakableBTree(0.5,get_np_functions(),1)
+    operator_list = get_np_functions()
+    n_vars = 2
+
+    tree = TweakableBTree(0.5,operator_list,1)
     tree.root = Node(1)
     node2 = Node(2)
     node3 = Node(3)
@@ -316,9 +321,9 @@ def main():
     tree.print_tree()
 
     # node = tree.generate_random_tree_grow(10)
-    node = tree.generate_random_tree_growfull(8,True)
-    tb2 = TweakableBTree(0.5,get_np_functions(),1)
-    tb2.root = node
+    # node = tree.generate_random_tree_growfull(8,True)
+    tb2 = TweakableBTree(0.5,operator_list,2)
+    tb2.root = TweakableBTree.generate_random_tree_growfull(operator_list,n_vars,2,True)
     print("Albero generato:")
     tb2.print_tree()
     print(tb2.to_np_formula())
