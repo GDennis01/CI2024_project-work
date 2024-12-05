@@ -260,13 +260,13 @@ class TweakableBTree(BTree):
         return self.root.to_np_formula()
     
     
-    def gen_random_leaf(n_vars:int)->Node:
+    def gen_random_leaf(n_vars:int,max_const:int=100)->Node:
         """
         Generate a random leaf node and return it.
         """
         # select between const and vars
         if np.random.rand() < 0.5:
-            value = np.random.rand()*100
+            value = np.random.rand()*max_const
             new_node = Node(value,NodeType.CONST)
         else:
             value = "x"+str(np.random.randint(0,n_vars))
@@ -308,7 +308,7 @@ class TweakableBTree(BTree):
         return new_node
         
 
-    def point_mutation(self,node:Node|None=None):
+    def point_mutation(self,node:Node|None=None,max_const:int=100):
         """
         Replace the current node with a new one randomly generated
         """
@@ -331,7 +331,7 @@ class TweakableBTree(BTree):
                 node.value = "x"+str(np.random.randint(0,self.n_vars))
                 pass
             case NodeType.CONST:
-                node.value = np.random.rand()*100
+                node.value = np.random.rand()*max_const
                 pass
     def hoist_mutation(self,node:Node|None=None):
         """
