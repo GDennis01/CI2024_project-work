@@ -460,40 +460,40 @@ def main():
     n_vars = 2
     md = 2
 
-    # tree = TweakableBTree(0.5,operator_list,1)
-    # tree.root = Node(1)
-    # node2 = Node(2)
-    # node3 = Node(3)
-    # tree.root.left = node2
-    # tree.root.right = node3
+    tree = TweakableBTree(0.5,operator_list,1)
+    tree.root = Node(1)
+    node2 = Node(2)
+    node3 = Node(3)
+    tree.root.left = node2
+    tree.root.right = node3
 
     # # Aggiungere foglie
-    # tree.add_child_at(node2, 4,NodeType.CONST, 0)
-    # tree.add_child_at(node2, 5,NodeType.CONST, 1)
-    # tree.add_child_tail(6,NodeType.CONST,)
-    # tree.add_child_tail(6,NodeType.CONST,)
-    # tree.add_child_tail(6,NodeType.CONST,)
+    tree.add_child_at(node2, 4,NodeType.CONST, 0)
+    tree.add_child_at(node2, 5,NodeType.CONST, 1)
+    tree.add_child_tail(6,NodeType.CONST,)
+    tree.add_child_tail(6,NodeType.CONST,)
+    tree.add_child_tail(6,NodeType.CONST,)
 
     # Stampare l'tree
-    # print("Albero iniziale:")
-    # tree.print_tree()
+    print("Albero iniziale:")
+    tree.print_tree()
 
     # Init a random tree
     
-    tb2 = TweakableBTree.generate_random_tree_growfull(operator_list,n_vars,md,True)
-    print("Albero generato:")
-    tb2.print_tree()
-    print()
+    # tb2 = TweakableBTree.generate_random_tree_growfull(operator_list,n_vars,md,True)
+    # print("Albero generato:")
+    # tb2.print_tree()
+    # print()
   
-    print("All nodes:")
-    nodes = tb2.root.get_all_nodes()
-    print([node.value for node in nodes])
-    print()
+    # print("All nodes:")
+    # nodes = tb2.root.get_all_nodes()
+    # print([node.value for node in nodes])
+    # print()
 
-    print("All leaves:")
-    leaves = tb2.root.get_leaves()
-    print([leaf.value for leaf in leaves])
-    print()
+    # print("All leaves:")
+    # leaves = tb2.root.get_leaves()
+    # print([leaf.value for leaf in leaves])
+    # print()
 
     # print(tb2.to_np_formula())
     # print(tb2.evaluate(np.array([1,2,3,4,5,6])))
