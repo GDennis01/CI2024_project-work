@@ -40,6 +40,7 @@ class FastTBTree:
         FastTBTree.n_vars = n_vars
         FastTBTree.max_const = max_const
         FastTBTree.vars_left = n_vars
+        FastTBTree.max_leaves = 0 # number of leaves that can be generated at a given instant
     def print_tree(self):
         # check if np array is empty
         if len(self.tree) == 0:
@@ -121,6 +122,10 @@ class FastTBTree:
             return tmp
     
     def gen_random_op(operators):
+        if FastTBTree.max_leaves < FastTBTree.n_vars:
+            op = np.random.choice([op for op in operators if op.nin == 2])
+            FastTBTree.max_leaves += 1
+            return Node(op, NodeType.B_OP)
         op = np.random.choice(operators)
         if op.nin == 1:
             return Node(op, NodeType.U_OP)
@@ -233,14 +238,14 @@ def main():
     # Example generation of random tree
     operator_list = get_np_functions()
     md = 5
-    n_vars = 2
+    n_vars = 10
     max_const = 100
     FastTBTree.set_params(operator_list,n_vars,max_const)
     tree = FastTBTree.generate_random_tree_growfull(True,md)
     tree.print_tree()
     print(tree.to_np_formula())
     print(tree.tree)
-    res = tree.evalute_tree([1,2])
+    res = tree.evalute_tree([1,2,3,4,5,6,7,9,9,9,9])
     print(res)
 
     # Example trees
