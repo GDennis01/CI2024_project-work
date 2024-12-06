@@ -458,7 +458,7 @@ def recombination(tb1:TweakableBTree,tb2:TweakableBTree):
 def main():
     operator_list = get_np_functions()
     n_vars = 2
-    md = 2
+    md = 3
 
     tree = TweakableBTree(0.5,operator_list,1)
     tree.root = Node(1)
@@ -526,27 +526,29 @@ def main():
     tb3 = TweakableBTree.generate_random_tree_growfull(operator_list,n_vars,md,True)
     print("Albero generato tb3:")
     tb3.print_tree()
+    print(tb3.to_np_formula())
+    print(tb3.evaluate(np.array([1,2,3,4,5,6])))
     print()
-    print("Recombination:")
-    tb4,tb5 = recombination(tb2,tb3)
-    print("Albero generato tb2:")
-    tb2.print_tree()
-    print()
-    print("Albero generato tb3:")
-    tb3.print_tree()
-    print()
+    # print("Recombination:")
+    # tb4,tb5 = recombination(tb2,tb3)
+    # print("Albero generato tb2:")
+    # tb2.print_tree()
+    # print()
+    # print("Albero generato tb3:")
+    # tb3.print_tree()
+    # print()
 
-    print("Albero generato tb4:")
-    tb4.print_tree()
-    print()
-    print("Albero generato tb5:")
-    tb5.print_tree()
-    print()
+    # print("Albero generato tb4:")
+    # tb4.print_tree()
+    # print()
+    # print("Albero generato tb5:")
+    # tb5.print_tree()
+    # print()
 
-    print(f'tb4 formula: {tb4.to_np_formula()}')
-    print(tb4.evaluate(np.array([1,2,3,4,5,6])))
-    print(f'tb5 formula: {tb4.to_np_formula()}')
-    print(tb5.evaluate(np.array([1,2,3,4,5,6])))
+    # print(f'tb4 formula: {tb4.to_np_formula()}')
+    # print(tb4.evaluate(np.array([1,2,3,4,5,6])))
+    # print(f'tb5 formula: {tb4.to_np_formula()}')
+    # print(tb5.evaluate(np.array([1,2,3,4,5,6])))
 
 
     
