@@ -30,7 +30,13 @@ class FastTBTree:
         else:
             self.tree = np.array([None] * (2**md - 1))
         self.md = md
+    def __len__(self):
+        return len(self.tree)
     def from_array(md, arr):
+        """
+        md: maximum depth of the tree
+        arr: np.array of the tree
+        """
         tree = FastTBTree(md)
         tree.tree = arr
         return tree
@@ -108,10 +114,10 @@ class FastTBTree:
             return True
         return False
     
-    def get_leaves(self):
+    def get_terminal(self):
         # return [self.tree[i] for i in range(len(self.tree)) if self.is_leaf(i)]
         return [self.tree[i] for i in range(len(self.tree)) if self.is_terminal_node(i)]
-    def get_leaves_idx(self):
+    def get_terminal_idx(self):
         # return [i for i in range(len(self.tree)) if self.is_leaf(i)]
         return [i for i in range(len(self.tree)) if self.is_terminal_node(i)]
 
@@ -129,7 +135,7 @@ class FastTBTree:
             depth += 1
         return depth
     
-    def gen_random_leaf(n_vars):
+    def get_random_terminal(n_vars):
         if FastTBTree.vars_left == 0:
             if np.random.rand() < 0.5:
                 return Node("x"+str(np.random.randint(0, n_vars)), NodeType.VAR)
@@ -155,29 +161,32 @@ class FastTBTree:
         tree = np.array([None] * (2**md - 1))
         FastTBTree._generate_random_treegrowfull(tree, 0,md-1,full)
         FastTBTree.vars_left = FastTBTree.n_vars
+        FastTBTree.max_leaves = 0
         t=  FastTBTree.from_array(md,tree)
-        # t.permutate_leaves()
+        t.permutate_leaves()
         return t
         
     def _generate_random_treegrowfull(tree, i,md,full):
         if md == 0 or (not full and np.random.rand() < 0.5):
-            new_node = FastTBTree.gen_random_leaf(FastTBTree.n_vars)
+            new_node = FastTBTree.get_random_terminal(FastTBTree.n_vars)
             tree[i] = new_node
             return new_node
+        
         new_node = FastTBTree.gen_random_op(FastTBTree.operators)
         tree[i] = new_node
+
         lindex = FastTBTree.get_lchild_idx(i)
         if lindex < len(tree):
-            # tree[lindex] = FastTBTree._generate_random_treegrowfull(tree,lindex,md-1,full)
             FastTBTree._generate_random_treegrowfull(tree,lindex,md-1,full)
+
         rindex = FastTBTree.get_rchild_idx(i)
         if new_node.type == NodeType.B_OP and rindex < len(tree):
-            # tree[rindex] = FastTBTree._generate_random_treegrowfull(tree,rindex,md-1,full)
             FastTBTree._generate_random_treegrowfull(tree,rindex,md-1,full)
+
         return new_node
     def permutate_leaves(self):
-        leaves = self.get_leaves()
-        leaves_idx = self.get_leaves_idx()
+        leaves = self.get_terminal()
+        leaves_idx = self.get_terminal_idx()
         np.random.shuffle(leaves)
         for i in range(len(leaves_idx)):
             self.tree[leaves_idx[i]] = leaves[i]
@@ -212,102 +221,105 @@ class FastTBTree:
         if node.type == NodeType.B_OP:
             return "np."+node.data.__name__ + "(" + FastTBTree._to_np_formula(tree, FastTBTree.get_lchild_idx(i)) + "," + FastTBTree._to_np_formula(tree, FastTBTree.get_rchild_idx(i)) + ")"
         
+    def get_subtree(self,i):
+        """
+        Get the indexes of subtree at position i
+        i: root of the subtree
+        return: [list of indexes of subtree,list of nodes of the subtree]
+        """
+        assert i < len(self.tree)
+        if self.is_terminal_node(i):
+            return [self.tree[i]]
+        subtree = [i]
+        queue = [i]
+        while queue:
+            current = queue.pop(0)
+            lchild = FastTBTree.get_lchild_idx(current)
+            if lchild < len(self.tree) and self.tree[lchild] is not None:
+                subtree.append(lchild)
+                queue.append(lchild)
+            rchild = FastTBTree.get_rchild_idx(current)
 
-    def swap_subtrees(tree1, tree2, idx1, idx2):
+            if rchild < len(self.tree) and self.tree[rchild] is not None:
+                subtree.append(rchild)
+                queue.append(rchild)
+        return FastTBTree.from_array(self.md,np.array(subtree))
+    def set_subtree(self,i,subtree):
         """
-        Swap the subtrees rooted at idx1 in tree1 and idx2 in tree2.
+        Replace the subtree at position i with a new one
+        i: position of the subtree to replace
+        subtree: new subtree
         """
-        def get_subtree(tree, i):
-            if i >= len(tree) or tree[i] is None:
-                return []
-            subtree = []
-            queue = [i]
-            while queue:
+        assert i < len(self.tree)
+        subtree_idx = range(len(subtree))
+        queue = [i]
+        idx = 0
+        while queue:
+            if idx < len(subtree):
                 current = queue.pop(0)
-                if current < len(tree):
-                    subtree.append(tree[current])
-                    queue.append(2 * current + 1)
-                    queue.append(2 * current + 2)
+                if current < len(self.tree):
+                    self.tree[current] = subtree.tree[idx]
                 else:
-                    subtree.append(None)
-            return subtree
-
-        def set_subtree(tree, subtree, i):
-            queue = [i]
-            idx = 0
-            while queue:
-                current = queue.pop(0)
-                if idx < len(subtree):
-                    if current < len(tree):
-                        tree[current] = subtree[idx]
-                    else:
-                        # Extend tree to accommodate the new nodes
-                        tree.extend([None] * (current - len(tree) + 1))
-                        tree[current] = subtree[idx]
-                    queue.append(2 * current + 1)
-                    queue.append(2 * current + 2)
-                    idx += 1
-
-        # Get the subtrees to be swapped
-        subtree1 = get_subtree(tree1, idx1)
-        subtree2 = get_subtree(tree2, idx2)
+                    # Extend tree to accommodate the new nodes
+                    # self.tree.extend([None] * (current - len(self.tree) + 1))
+                    # np.concatenate([self.tree, np.array([None] * (current - len(self.tree) + 1))])
+                    # extend the np array
+                    self.tree = np.concatenate([self.tree, np.array([None] * (current - len(self.tree) + 1))])
+                    self.tree[current] = subtree.tree[idx]
+                queue.append(FastTBTree.get_lchild_idx(current))
+                queue.append(FastTBTree.get_rchild_idx(current))
+                idx += 1
+            else:
+                break
         
-        # Replace subtrees in the original trees
-        set_subtree(tree1, subtree2, idx1)
-        set_subtree(tree2, subtree1, idx2)
+        # set to None the remaining children
+        print(current)
+        # queue = [queue.pop(0)]
+        while queue:
+            current = queue.pop(0)
+            if current < len(self.tree):
+                self.tree[current] = None
+                queue.append(FastTBTree.get_lchild_idx(current))
+                queue.append(FastTBTree.get_rchild_idx(current))
+        
+            
 
-        return tree1, tree2
-def get_np_functions()->list[tuple[np.ufunc,str,int]]:
-    # Get all attributes of numpy module
+def get_np_functions()->list[np.ufunc]:
     all_attrs = dir(np)
 
-    # Filter to include only ufunc objects
     ufuncs = [getattr(np, attr) for attr in all_attrs if isinstance(getattr(np, attr), np.ufunc)]
-    # Filter to include only common ufuncs
+
     ufunc_list = [ufunc for ufunc in ufuncs if ufunc.__name__ in ['absolute','add','subtract','multiply','divide','sin','cos','sinh','cosh','asin','asinh','acos','acosh','sqrt','exp','exp2','log2','log','maximum','minimum',]]
     return ufunc_list
 def main():
     # Example generation of random tree
     operator_list = get_np_functions()
-    md = 5
-    n_vars = 10
+    md = 4
+    n_vars = 3
     max_const = 100
     FastTBTree.set_params(operator_list,n_vars,max_const)
+    
     tree = FastTBTree.generate_random_tree_growfull(True,md)
-
     tree.print_tree()
-    print(tree.tree)
-    print(tree.to_np_formula())
-    print(f'Len:{len(tree.tree)}')
-    res = tree.evalute_tree([1,2,3,4,5,6,7,9,9,9,9])
-    print(res)
-
-    tree.permutate_leaves()
-    tree.print_tree()
-    print(tree.tree)
     res = tree.evalute_tree([1,2,3,4,5,6,7,9,9,9,9])
     print(tree.to_np_formula())
 
-    # Example trees
-    # t1 = [1, 2, 3, 4, 5, None, None, 8, 9]
-    # t2 = [10, 20, 30, 40, None, 60]
-    # tree = FastTBTree(4,True)
-    # tree2 = FastTBTree(4,True)
+    tree2 = FastTBTree.generate_random_tree_growfull(True,3)
+    tree2.print_tree()
+    res = tree2.evalute_tree([1,2,3,4,5,6,7,9,9,9,9])
+    print(tree2.to_np_formula())
+    print(tree2.tree)
 
+    # tree.set_subtree(1,tree2)
     # tree.print_tree()
-    # tree2.print_tree()
-    # #TODO: fix this
-    # t1n, t2n = FastTBTree.swap_subtrees(tree.tree, tree2.tree, 1, 0)
-    # t1n = FastTBTree(4,t1n)
-    # t2n = FastTBTree(4,t2n)
-    # t1n.print_tree()
-    # t2n.print_tree()
+    tree2.set_subtree(3,tree)
+    tree2.print_tree()
+    print(tree2.to_np_formula())
+    print(tree2.evalute_tree([1,2,3,4,5,6,7,9,9,9,9]))
+    # tree3 = FastTBTree.swap_subtrees(tree.tree, tree2.tree, 1, 0)
+    
 
-    # Swap subtree rooted at index 1 in t1 with subtree rooted at index 0 in t2
-    # updated_t1, updated_t2 = swap_subtrees(t1, t2, 1, 0)
 
-    # print("Updated Tree 1:", updated_t1)
-    # print("Updated Tree 2:", updated_t2)
 
 if __name__ == "__main__":
     main()
