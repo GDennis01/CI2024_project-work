@@ -32,6 +32,8 @@ class FastTBTree:
         self.md = md
     def __len__(self):
         return len(self.tree)
+    def copy(self):
+        return FastTBTree.from_array(self.md,self.tree.copy())
     def from_array(md, arr):
         """
         md: maximum depth of the tree
@@ -92,7 +94,6 @@ class FastTBTree:
         """
         Returns True if the node at index i is a leaf node
         False otherwise
-        TODO: Debug this
         """
         # If the idx is greater than the maximum number of nodes, then it's a leaf node
         if i > len(self.tree):
@@ -281,6 +282,27 @@ class FastTBTree:
                 self.tree[current] = None
                 queue.append(FastTBTree.get_lchild_idx(current))
                 queue.append(FastTBTree.get_rchild_idx(current))
+    def recombination(tree1,tree2):
+        """
+        Recombine two trees
+        tree1: First tree
+        tree2: Second tree
+        return: New tree
+        """
+        # TODO: Fix this. If the random subtree is a leaf node, it should be replace to a leaf node
+        # If the root of the subtree is a b_op node, then it should be replaced where there is a b_op node in the other tree
+        # Same thing for the u_op node
+        # Choose a random node from tree1
+        idx1 = np.random.choice(len(tree1))
+        # Choose a random node from tree2
+        idx2 = np.random.choice(len(tree2))
+        # Swap the subtrees
+        tree2tmp = tree2.copy()
+        st2 = tree2.get_subtree(idx2)
+        tree1.set_subtree(idx1,st2)
+        st1 = tree1.get_subtree(idx1)
+        tree2.set_subtree(idx2,st1)
+        return tree1,tree2
         
             
 
@@ -312,11 +334,17 @@ def main():
 
     # tree.set_subtree(1,tree2)
     # tree.print_tree()
-    tree2.set_subtree(3,tree)
-    tree2.print_tree()
-    print(tree2.to_np_formula())
-    print(tree2.evalute_tree([1,2,3,4,5,6,7,9,9,9,9]))
+    # tree2.set_subtree(3,tree)
+    # tree2.print_tree()
+    # print(tree2.to_np_formula())
+    # print(tree2.evalute_tree([1,2,3,4,5,6,7,9,9,9,9]))
     # tree3 = FastTBTree.swap_subtrees(tree.tree, tree2.tree, 1, 0)
+
+    idx1 = np.random.choice(len(tree))
+    idx2 = np.random.choice(len(tree2))
+    tree1,tree2 = FastTBTree.recombination(tree,tree2)
+    tree1.print_tree()
+    tree2.print_tree()
     
 
 
