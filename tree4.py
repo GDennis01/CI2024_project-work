@@ -86,20 +86,39 @@ class FastTBTree:
         """
         Returns True if the node at index i is a leaf node
         False otherwise
+        TODO: Debug this
         """
         # If the idx is greater than the maximum number of nodes, then it's a leaf node
-        if i >= 2**(self.md - 1) - 1:
-            return True
+        if i > len(self.tree):
+            return False
         # If the left and right children are None, then it's a leaf node
-        if self.get_lchild(i) == None and self.get_rchild(i) == None:
+        if self.get_lchild(i) == None and self.get_rchild(i) == None and self.tree[i] is not None:
+            return True
+        return False
+    def is_op_node(self, i:int):
+        if i > len(self.tree):
+            return False
+        if self.tree[i] is not None and  (self.tree[i].type == NodeType.U_OP or  self.tree[i].type == NodeType.B_OP):
+            return True
+        return False
+    def is_terminal_node(self, i:int):
+        if i > len(self.tree):
+            return False
+        if self.tree[i] is not None and  (self.tree[i].type == NodeType.VAR or  self.tree[i].type == NodeType.CONST):
             return True
         return False
     
     def get_leaves(self):
-        return [i for i in self.tree if self.is_leaf(i)]
-    def get_op_nodes(self):
-        return [i for i in self.tree if not self.is_leaf(i)]
+        # return [self.tree[i] for i in range(len(self.tree)) if self.is_leaf(i)]
+        return [self.tree[i] for i in range(len(self.tree)) if self.is_terminal_node(i)]
+    def get_leaves_idx(self):
+        # return [i for i in range(len(self.tree)) if self.is_leaf(i)]
+        return [i for i in range(len(self.tree)) if self.is_terminal_node(i)]
 
+    def get_op_nodes(self):
+         return [self.tree[i] for i in range(len(self.tree)) if not self.is_leaf(i)]
+    def get_op_nodes_idx(self):
+        return [i for i in range(len(self.tree)) if not self.is_leaf(i)]
     def get_depth(self, i:int):
         """
         Returns the depth of the node at index i
@@ -136,7 +155,9 @@ class FastTBTree:
         tree = np.array([None] * (2**md - 1))
         FastTBTree._generate_random_treegrowfull(tree, 0,md-1,full)
         FastTBTree.vars_left = FastTBTree.n_vars
-        return FastTBTree.from_array(md,tree)
+        t=  FastTBTree.from_array(md,tree)
+        # t.permutate_leaves()
+        return t
         
     def _generate_random_treegrowfull(tree, i,md,full):
         if md == 0 or (not full and np.random.rand() < 0.5):
@@ -154,6 +175,16 @@ class FastTBTree:
             # tree[rindex] = FastTBTree._generate_random_treegrowfull(tree,rindex,md-1,full)
             FastTBTree._generate_random_treegrowfull(tree,rindex,md-1,full)
         return new_node
+    def permutate_leaves(self):
+        leaves = self.get_leaves()
+        leaves_idx = self.get_leaves_idx()
+        np.random.shuffle(leaves)
+        for i in range(len(leaves_idx)):
+            self.tree[leaves_idx[i]] = leaves[i]
+
+        
+
+
     def evalute_tree(self, x):
         return FastTBTree._evalute_tree(self.tree, 0, x)
     def _evalute_tree(tree, i, x):
@@ -171,8 +202,9 @@ class FastTBTree:
         return FastTBTree._to_np_formula(self.tree, 0)
     def _to_np_formula(tree, i):
         node = tree[i]
+        # print('Analyzing node:',node)
         if node.type == NodeType.VAR:
-            return node.data
+            return node.data[0]+"["+node.data[1:]+"]"
         if node.type == NodeType.CONST:
             return str(node.data)
         if node.type == NodeType.U_OP:
@@ -242,11 +274,19 @@ def main():
     max_const = 100
     FastTBTree.set_params(operator_list,n_vars,max_const)
     tree = FastTBTree.generate_random_tree_growfull(True,md)
+
     tree.print_tree()
-    print(tree.to_np_formula())
     print(tree.tree)
+    print(tree.to_np_formula())
+    print(f'Len:{len(tree.tree)}')
     res = tree.evalute_tree([1,2,3,4,5,6,7,9,9,9,9])
     print(res)
+
+    tree.permutate_leaves()
+    tree.print_tree()
+    print(tree.tree)
+    res = tree.evalute_tree([1,2,3,4,5,6,7,9,9,9,9])
+    print(tree.to_np_formula())
 
     # Example trees
     # t1 = [1, 2, 3, 4, 5, None, None, 8, 9]
