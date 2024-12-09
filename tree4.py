@@ -308,14 +308,7 @@ class FastTBTree:
 
         tree1cpy = tree1.copy()
         tree2cpy = tree2.copy()
-        # print('Tree1')
-        tree1cpy.print_tree()
-        # print(tree1cpy.to_np_formula())
-        # print("---")
-        # print('Tree2')
-        tree2cpy.print_tree()
-        # print(tree2cpy.to_np_formula())
-        # print("---")
+
         # Choose a random node from tree1cpy
         non_none_idxs = np.where(tree1cpy.tree != None)[0]
         idx1 = np.random.choice(non_none_idxs)
@@ -329,23 +322,12 @@ class FastTBTree:
 
         # get its subtree
         st2 = tree2cpy.get_subtree(idx2)
-        # print(f'Subtree 1 at {idx1}:')
-        st1.print_tree()
-        # print(st1.to_np_formula())
-        # print(f'Subtree 2 at {idx2}:')
-        st2.print_tree()
-        # print(st2.to_np_formula())
+  
 
         # Swap the subtrees
-        # print('Swapping subtrees')
-
         tree1cpy.set_subtree(idx1,st2)
-        # print('tree1cpy with tree2cpy subtree')
-        tree1cpy.print_tree()
-
         tree2cpy.set_subtree(idx2,st1)
-        # print('tree2cpy with tree1cpy subtree')
-        tree2cpy.print_tree()
+
 
         return tree1cpy,tree2cpy
         
@@ -366,7 +348,7 @@ def get_np_functions()->list[np.ufunc]:
     return ufunc_list
 def main():
     # Example generation of random tree
-    np.random.seed(0)
+    # np.random.seed(0)
     operator_list = get_np_functions()
     md = 5
     n_vars = 3
