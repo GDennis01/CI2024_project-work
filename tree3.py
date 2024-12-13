@@ -83,16 +83,16 @@ class Node:
             left = self.left.evaluate(x)
             right = self.right.evaluate(x)
             try:
-                tmp_res = self.value[0](left,right)
+                tmp_res = self.value(left,right)
             except RuntimeWarning as e:
-                print(f'Error in evaluating the node {self.value[1]} with left {left} and right {right}')
+                print(f'Error in evaluating the node {self.value.__name__} with left {left} and right {right}')
             return tmp_res
         if self.type == NodeType.U_OP:
             left = self.left.evaluate(x)
             try:
-                tmp_res = self.value[0](left)
+                tmp_res = self.value(left)
             except RuntimeWarning as e:
-                print(f'Error in evaluating the node {self.value[1]} with left {left}')
+                print(f'Error in evaluating the node {self.value.__name__} with left {left}')
 
             return tmp_res
     def to_np_formula(self):
@@ -105,14 +105,14 @@ class Node:
         if self.type == NodeType.U_OP:
             if self.right is None:
                 left = self.left.to_np_formula()
-                return "np."+self.value[1]+"("+left+")"
+                return "np."+self.value.__name__+"("+left+")"
             
             right = self.right.to_np_formula()
-            return "np."+self.value[1]+"("+right+")"
+            return "np."+self.value.__name__+"("+right+")"
         if self.type == NodeType.B_OP:
             left = self.left.to_np_formula()
             right = self.right.to_np_formula()
-            return "np."+self.value[1]+"("+left+","+right+")"
+            return "np."+self.value.__name__+"("+left+","+right+")"
 
 class BTree:
     def __init__(self):
@@ -314,12 +314,12 @@ class TweakableBTree(BTree):
         # Generate an operator node
             if np.random.rand() < 0.5:
                 #Binary function node
-                tmp_oplist = list(filter(lambda x: x[2] == 2,operator_list))
+                tmp_oplist = list(filter(lambda x: x.nin == 2,operator_list))
                 idx = np.random.randint(0,len(tmp_oplist))
                 new_node = Node(tmp_oplist[idx],NodeType.B_OP)
             else:
                 # Unary function node
-                tmp_oplist = list(filter(lambda x: x[2] == 1,operator_list))
+                tmp_oplist = list(filter(lambda x: x.nin == 1,operator_list))
                 idx = np.random.randint(0,len(tmp_oplist))
                 new_node = Node(tmp_oplist[idx],NodeType.U_OP)
             return new_node
@@ -332,7 +332,7 @@ class TweakableBTree(BTree):
         else:
             new_node = TweakableBTree.gen_random_op_node(operator_list)
         new_node.left = TweakableBTree._gen_random_tree_growfull(operator_list,n_vars,md-1,True)
-        if new_node.value[2] == 2:
+        if new_node.value.nin == 2:
             new_node.right = TweakableBTree._gen_random_tree_growfull(operator_list,n_vars,md-1,True)
         return new_node
     def generate_random_tree_growfull(operator_list:list[tuple[np.ufunc,str,int]],n_vars:int,md:int,full:bool,pm=0.05):
@@ -358,12 +358,12 @@ class TweakableBTree(BTree):
 
         match node.type:
             case NodeType.B_OP:
-                tmp_oplist = list(filter(lambda x: x[2] == 2,self.operator_list))
+                tmp_oplist = list(filter(lambda x: x.nin == 2,self.operator_list))
                 idx = np.random.randint(0,len(tmp_oplist))
                 node.value = tmp_oplist[idx]
                 pass
             case NodeType.U_OP:
-                tmp_oplist = list(filter(lambda x: x[2] == 1,self.operator_list))
+                tmp_oplist = list(filter(lambda x: x.nin == 1,self.operator_list))
                 idx = np.random.randint(0,len(tmp_oplist))
                 node.value = tmp_oplist[idx]
                 pass
