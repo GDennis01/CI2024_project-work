@@ -3,5 +3,3 @@ poetry.lock
 comp_int_init.txt
 gxgp/__pycache__
 /__pycache__
-tree.py
-tree2.py
