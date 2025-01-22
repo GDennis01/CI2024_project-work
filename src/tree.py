@@ -602,7 +602,7 @@ class Tree:
     def create_tree_from_np_formula(formula):
         empty = Tree(empty=True)
         empty.root = Tree.parse_expression(formula)
-        empty.compute_fitness()
+        # empty.compute_fitness()
         return empty
 
     
