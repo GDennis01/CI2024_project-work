@@ -630,25 +630,14 @@ class Tree:
         node.right = Tree.collapse_branch(node.right, current_depth + 1,force_collapse=force_collapse)
         return node
     
-
-
     def __lt__(self, other):
         return self.fitness < other.fitness
     def __eq__(self, other):
         return self.fitness == other.fitness
     
 
-
-
-     
-
-
-
-
 def main():
     return
-
-
 
 if __name__ == "__main__":
     main()
